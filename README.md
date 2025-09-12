@@ -209,15 +209,6 @@ Optimized for **25 European languages**:
 3. Verify port 10300 is accessible from Home Assistant
 4. Check Home Assistant logs for connection errors
 
-### High VRAM Usage
-
-The default Parakeet backend uses ~2.8GB VRAM. If you need even lower usage:
-
-```yaml
-# Switch to whisper backend (higher VRAM but better accuracy)
-asr_backend: 'whisper'
-```
-
 ### Slow Performance
 
 1. **Ensure models stay loaded**: Don't restart the service frequently
