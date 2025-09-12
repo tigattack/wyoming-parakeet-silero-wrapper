@@ -1,0 +1,72 @@
+# Example Docker Compose for complete voice pipeline
+# This shows how to use Parakeet Wyoming Wrapper alongside other voice services
+
+version: '3.8'
+
+services:
+  # Your custom Parakeet ASR service (runs natively for best GPU performance)
+  # parakeet-wyoming:
+  #   # This service should run natively using the manage.sh script
+  #   # Not containerized for optimal GPU access
+  
+  # Text-to-Speech Service
+  wyoming-piper:
+    image: rhasspy/wyoming-piper:latest
+    container_name: wyoming-piper
+    restart: unless-stopped
+    ports:
+      - "10200:10200"
+    volumes:
+      - ./piper/data:/data
+      - ./piper/models:/root/.local/share/piper
+    command: >
+      --voice hu_HU-anna-medium
+      --uri tcp://0.0.0.0:10200
+      --data-dir /data
+    networks:
+      - voice-network
+    healthcheck:
+      test: ["CMD", "python3", "-c", "import socket; s=socket.socket(); s.connect(('localhost', 10200)); s.close()"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Wake Word Detection Service
+  wyoming-openwakeword:
+    image: rhasspy/wyoming-openwakeword:latest
+    container_name: wyoming-openwakeword
+    restart: unless-stopped
+    ports:
+      - "10400:10400"
+    volumes:
+      - ./wakeword/data:/data
+      - ./wakeword/models:/root/.local/share/openwakeword
+    command: >
+      --uri tcp://0.0.0.0:10400
+      --data-dir /data
+      --preload-model alexa
+      --preload-model hey_jarvis
+      --preload-model computer
+    networks:
+      - voice-network
+    healthcheck:
+      test: ["CMD", "python3", "-c", "import socket; s=socket.socket(); s.connect(('localhost', 10400)); s.close()"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+networks:
+  voice-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16
+
+# To use this setup:
+# 1. Save this file as docker-compose.yml
+# 2. Start Docker services: docker-compose up -d
+# 3. Start Parakeet service: ./manage.sh install-service
+# 4. Configure Home Assistant to use:
+#    - STT: tcp://your-server:10300 (Parakeet)
+#    - TTS: tcp://your-server:10200 (Piper)
+#    - Wake Word: tcp://your-server:10400 (OpenWakeWord)

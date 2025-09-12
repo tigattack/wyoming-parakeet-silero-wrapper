@@ -1,0 +1,71 @@
+# Example Home Assistant configuration.yaml entries
+# Add these to your existing configuration.yaml
+
+# Speech-to-Text with Parakeet Wyoming Wrapper
+stt:
+  - platform: wyoming
+    uri: tcp://10.40.80.175:10300  # Replace with your server IP
+
+# Text-to-Speech with Piper (Hungarian voice)
+tts:
+  - platform: wyoming
+    uri: tcp://10.40.80.175:10200  # Replace with your server IP
+
+# Wake Word Detection with OpenWakeWord
+wake_word:
+  - platform: wyoming
+    uri: tcp://10.40.80.175:10400  # Replace with your server IP
+
+# Conversation AI with Ollama (for intent recognition)
+conversation:
+  - platform: ollama
+    base_url: http://10.40.80.175:11434  # Replace with your server IP
+    model: gemma3:12b  # Or llama3.2:3b for lower resource usage
+    chat_model: gemma3:12b
+    context_length: 4096
+    temperature: 0.3
+    
+# Voice Assistant Pipeline Configuration
+assist_pipeline:
+  - conversation_engine: ollama
+    conversation_language: hu  # Hungarian primary language
+    stt_engine: wyoming       # Parakeet Wyoming Wrapper
+    tts_engine: wyoming       # Piper TTS
+    wake_word_engine: wyoming # OpenWakeWord
+
+# Optional: Customize the assistant
+homeassistant:
+  name: "Okos Otthon"  # Smart Home in Hungarian
+  latitude: 47.4979
+  longitude: 19.0402
+  elevation: 102
+  unit_system: metric
+  country: HU
+  language: hu
+  time_zone: Europe/Budapest
+
+# Example automation triggered by voice
+automation:
+  - alias: "Voice Light Control"
+    trigger:
+      platform: conversation
+      command: 
+        - "kapcsold be a lámpát"
+        - "kapcsold ki a lámpát"
+        - "turn on the light"
+        - "turn off the light"
+    action:
+      service: light.toggle
+      target:
+        entity_id: light.kitchen_light
+
+  - alias: "Voice Weather Query"
+    trigger:
+      platform: conversation
+      command:
+        - "milyen az időjárás"
+        - "what's the weather"
+    action:
+      service: tts.speak
+      data:
+        message: "A mai időjárás szerint {{ states('weather.home') }}"

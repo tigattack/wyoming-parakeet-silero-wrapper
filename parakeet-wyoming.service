@@ -1,0 +1,31 @@
+[Unit]
+Description=Parakeet Wyoming ASR Server
+After=network.target
+Wants=network.target
+
+[Service]
+Type=simple
+User=YOUR_USERNAME
+Group=YOUR_USERNAME
+WorkingDirectory=/path/to/parakeet-wyoming-wrapper
+Environment=PATH=/usr/local/bin:/usr/bin:/bin
+Environment=PYTHONPATH=/path/to/parakeet-wyoming-wrapper
+ExecStart=/usr/bin/python3 /path/to/parakeet-wyoming-wrapper/wyoming_vad_asr_server.py --config /path/to/parakeet-wyoming-wrapper/config.yaml
+Restart=always
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
+
+# Log management
+SyslogIdentifier=parakeet-wyoming
+
+# GPU access
+SupplementaryGroups=video render
+
+# Resource limits (adjust as needed)
+LimitNOFILE=65536
+LimitCPU=80%
+LimitMEMLOCK=infinity
+
+[Install]
+WantedBy=multi-user.target

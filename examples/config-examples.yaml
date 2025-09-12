@@ -1,0 +1,212 @@
+# Configuration Examples for Different Use Cases
+
+# ==============================================================================
+# SPEED OPTIMIZED (Default - Best for most users)
+# ==============================================================================
+speed_optimized: &speed_config
+  # ASR Backend Selection
+  asr_backend: 'parakeet'
+
+  # Voice Activity Detection (VAD) Settings
+  vad_enabled: true
+  vad_threshold: 0.7  # Higher = more strict filtering, faster cutoff
+
+  # Audio Processing Settings  
+  sample_rate: 16000
+  buffer_timeout: 2.0  # Process quickly
+
+  # Language Configuration
+  languages:
+    - "hu"  # Primary language first for best performance
+    - "en"
+    - "de"
+    - "fr"
+
+  # VAD-Specific Settings
+  vad:
+    min_speech_duration: 0.3  # Ignore very short sounds
+    max_silence_duration: 0.2  # Cut off quickly after silence
+
+  # Performance Tuning
+  performance:
+    max_audio_length: 8.0  # Limit processing time
+    chunk_size: 2048
+    enable_caching: true
+
+# ==============================================================================  
+# ACCURACY OPTIMIZED (Better recognition, slower)
+# ==============================================================================
+accuracy_optimized: &accuracy_config
+  # ASR Backend Selection
+  asr_backend: 'whisper'  # Higher accuracy but more VRAM
+
+  # Voice Activity Detection (VAD) Settings
+  vad_enabled: true
+  vad_threshold: 0.3  # Lower = less filtering, processes more audio
+
+  # Audio Processing Settings
+  sample_rate: 16000  
+  buffer_timeout: 5.0  # More patience for complete sentences
+
+  # Language Configuration
+  languages:
+    - "hu"
+    - "en"
+    - "de"
+    - "fr"
+    - "es"
+    - "it"
+    - "pl"
+    - "nl"
+    - "cs"
+    - "sk"
+
+  # Whisper-Specific Settings
+  whisper:
+    beam_size: 5  # Higher beam size for better accuracy
+    use_gpu: true
+    compute_type: "float16"
+
+  # VAD-Specific Settings
+  vad:
+    min_speech_duration: 0.1  # Process shorter sounds
+    max_silence_duration: 1.0  # Allow longer pauses
+
+  # Performance Tuning
+  performance:
+    max_audio_length: 15.0  # Allow longer recordings
+    chunk_size: 1024
+    enable_caching: false
+
+# ==============================================================================
+# LOW RESOURCE (Minimal VRAM/CPU usage)
+# ==============================================================================
+low_resource: &low_resource_config
+  # ASR Backend Selection
+  asr_backend: 'parakeet'
+
+  # Voice Activity Detection (VAD) Settings  
+  vad_enabled: true
+  vad_threshold: 0.8  # Very strict filtering
+
+  # Audio Processing Settings
+  sample_rate: 16000
+  buffer_timeout: 1.5  # Process very quickly
+
+  # Language Configuration (fewer languages for less memory)
+  languages:
+    - "hu"
+    - "en"
+
+  # VAD-Specific Settings
+  vad:
+    min_speech_duration: 0.5  # Only process clear speech
+    max_silence_duration: 0.1  # Cut off immediately
+
+  # Performance Tuning
+  performance:
+    max_audio_length: 5.0  # Short recordings only
+    chunk_size: 512
+    enable_caching: true
+
+# ==============================================================================
+# DEBUGGING (Verbose logging, less filtering)
+# ==============================================================================
+debugging: &debug_config
+  # ASR Backend Selection
+  asr_backend: 'parakeet'
+
+  # Voice Activity Detection (VAD) Settings
+  vad_enabled: false  # Disable VAD to process all audio
+
+  # Audio Processing Settings
+  sample_rate: 16000
+  buffer_timeout: 10.0  # Very patient
+
+  # Server Configuration
+  server:
+    debug: true  # Enable debug logging
+
+  # Language Configuration
+  languages:
+    - "hu"
+    - "en"
+
+  # Performance Tuning
+  performance:
+    max_audio_length: 30.0  # Allow very long recordings
+    chunk_size: 1024
+    enable_caching: false
+
+# ==============================================================================
+# MULTILINGUAL (Support for all languages)
+# ==============================================================================  
+multilingual: &multilingual_config
+  # ASR Backend Selection
+  asr_backend: 'parakeet'
+
+  # Voice Activity Detection (VAD) Settings
+  vad_enabled: true
+  vad_threshold: 0.5  # Balanced filtering
+
+  # Audio Processing Settings
+  sample_rate: 16000
+  buffer_timeout: 3.0
+
+  # Language Configuration (all supported languages)
+  languages:
+    - "hu"  # Hungarian (primary)
+    - "en"  # English  
+    - "de"  # German
+    - "fr"  # French
+    - "es"  # Spanish
+    - "it"  # Italian
+    - "pl"  # Polish
+    - "nl"  # Dutch
+    - "cs"  # Czech
+    - "sk"  # Slovak
+    - "hr"  # Croatian
+    - "sl"  # Slovenian
+    - "bg"  # Bulgarian
+    - "et"  # Estonian
+    - "lv"  # Latvian
+    - "lt"  # Lithuanian
+    - "mt"  # Maltese
+    - "da"  # Danish
+    - "sv"  # Swedish
+    - "fi"  # Finnish
+    - "el"  # Greek
+    - "ro"  # Romanian
+    - "ru"  # Russian
+    - "uk"  # Ukrainian
+
+  # Performance Tuning
+  performance:
+    max_audio_length: 10.0
+    chunk_size: 2048
+    enable_caching: true
+
+# ==============================================================================
+# PRODUCTION (Recommended for 24/7 operation)
+# ==============================================================================
+production: &production_config
+  <<: *speed_config  # Inherit from speed_optimized
+  
+  # Override specific settings for production
+  performance:
+    max_audio_length: 8.0
+    chunk_size: 2048
+    enable_caching: true
+
+  # Production-specific settings
+  home_assistant:
+    discovery_enabled: true
+    service_name: "Production Voice ASR"
+    service_description: "High-performance voice recognition for smart home"
+
+# ==============================================================================
+# To use a specific configuration:
+# 1. Copy the desired section to your config.yaml
+# 2. Remove the anchor name (e.g., "&speed_config")  
+# 3. Adjust values as needed for your specific setup
+# ==============================================================================

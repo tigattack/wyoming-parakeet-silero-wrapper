@@ -1,0 +1,64 @@
+# Wyoming VAD ASR Server Configuration
+# This file configures the Wyoming protocol server with VAD and ASR capabilities
+
+# ASR Backend Selection
+# Options: 'parakeet' (low VRAM, fast) or 'whisper' (higher accuracy)
+asr_backend: 'parakeet'
+
+# Voice Activity Detection (VAD) Settings
+vad_enabled: true
+vad_threshold: 0.7  # Speech detection threshold (0.0-1.0, higher = more strict) - INCREASED for faster cutoff
+
+# Audio Processing Settings
+sample_rate: 16000  # Audio sample rate in Hz (16kHz recommended)
+buffer_timeout: 2.0  # Maximum audio buffer time in seconds - REDUCED for faster processing
+
+# Language Configuration
+# Primary language should be first in the list
+languages:
+  - "hu"  # Hungarian (primary)
+  - "en"  # English
+  - "de"  # German
+  - "fr"  # French
+  - "es"  # Spanish
+  - "it"  # Italian
+  - "pl"  # Polish
+  - "nl"  # Dutch
+  - "cs"  # Czech
+  - "sk"  # Slovak
+
+# Server Configuration
+server:
+  uri: "tcp://0.0.0.0:10300"  # Server bind address and port
+  debug: false  # Enable debug logging
+
+# Backend-Specific Settings
+parakeet:
+  model_name: "nvidia/parakeet-tdt-0.6b-v3"
+  use_gpu: true  # Use GPU if available
+  
+whisper:
+  model_path: "/home/attila/voice-services/whisper/converted-models/hungarian-large-v2"
+  fallback_model: "large-v2"  # Fallback if custom model not found
+  beam_size: 2  # Beam size for decoding (higher = better accuracy, slower)
+  use_gpu: true  # Use GPU if available
+  compute_type: "float16"  # GPU: float16, CPU: int8
+
+# VAD-Specific Settings
+vad:
+  model_path: null  # Auto-download if null
+  window_size: 0.032  # VAD window size in seconds (32ms recommended)
+  min_speech_duration: 0.3  # Minimum speech duration to process (seconds) - INCREASED to avoid short sounds
+  max_silence_duration: 0.2  # Maximum silence to keep in speech (seconds) - REDUCED for faster cutoff
+
+# Performance Tuning
+performance:
+  max_audio_length: 8.0  # Maximum audio length to process (seconds) - REDUCED for faster processing
+  chunk_size: 2048  # Audio chunk size for processing - INCREASED for better throughput
+  enable_caching: true  # Cache recent transcriptions (experimental) - ENABLED for speed
+
+# Home Assistant Integration
+home_assistant:
+  discovery_enabled: true  # Enable service discovery
+  service_name: "Wyoming VAD ASR"
+  service_description: "AI-powered speech recognition with voice activity detection"

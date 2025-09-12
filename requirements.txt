@@ -1,0 +1,63 @@
+# Wyoming VAD ASR Server Dependencies
+# Install with: pip3 install -r requirements_wyoming.txt
+
+# Core Wyoming Protocol
+wyoming>=1.7.0
+
+# Audio Processing
+soundfile>=0.12.1
+numpy>=1.21.0
+
+# Machine Learning Framework
+torch>=1.11.0
+torchaudio>=0.11.0
+
+# Silero VAD
+silero-vad>=4.0.0
+
+# Configuration
+PyYAML>=6.0
+
+# ASR Backends (choose one or both)
+
+# For Parakeet backend
+nemo-toolkit[asr]>=1.18.0
+
+# For Whisper backend  
+faster-whisper>=0.9.0
+
+# Optional: ONNX Runtime (for optimized VAD)
+onnxruntime>=1.15.0
+
+# Optional: ONNX Runtime GPU (if you have NVIDIA GPU and want VAD on GPU)
+# onnxruntime-gpu>=1.15.0
+
+# Development and Testing
+asyncio-mqtt>=0.11.0  # For future MQTT support
+aiofiles>=23.0.0      # For async file operations
+
+# System Dependencies Notes:
+# 
+# For Ubuntu/Debian systems, also install:
+# sudo apt-get update
+# sudo apt-get install -y \
+#     python3-dev \
+#     build-essential \
+#     portaudio19-dev \
+#     libsndfile1-dev \
+#     ffmpeg \
+#     sox
+#
+# For NVIDIA GPU support, ensure CUDA is installed:
+# - CUDA Toolkit 11.8 or 12.x
+# - cuDNN compatible with your CUDA version
+#
+# For optimal performance on RTX 3080 Ti:
+# - Use CUDA 12.x for best Parakeet performance
+# - Ensure at least 4GB VRAM available for models
+#
+# Installation order recommendations:
+# 1. Install system dependencies (apt packages)
+# 2. Install PyTorch with CUDA support first
+# 3. Install this requirements file
+# 4. Test with: python3 -c "import torch; print(torch.cuda.is_available())"
