@@ -12,8 +12,6 @@ Features:
 import asyncio
 import argparse
 import logging
-import wave
-import io
 import tempfile
 import yaml
 import time
