@@ -1,0 +1,7 @@
+.dockerignore
+.git*
+*.md
+*.sh
+*.service
+Dockerfile
+examples/
