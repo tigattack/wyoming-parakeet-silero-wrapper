@@ -4,14 +4,11 @@
 # SPEED OPTIMIZED (Default - Best for most users)
 # ==============================================================================
 speed_optimized: &speed_config
-  # ASR Backend Selection
-  asr_backend: 'parakeet'
-
   # Voice Activity Detection (VAD) Settings
   vad_enabled: true
   vad_threshold: 0.7  # Higher = more strict filtering, faster cutoff
 
-  # Audio Processing Settings  
+  # Audio Processing Settings
   sample_rate: 16000
   buffer_timeout: 2.0  # Process quickly
 
@@ -33,19 +30,16 @@ speed_optimized: &speed_config
     chunk_size: 2048
     enable_caching: true
 
-# ==============================================================================  
+# ==============================================================================
 # ACCURACY OPTIMIZED (Better recognition, slower)
 # ==============================================================================
 accuracy_optimized: &accuracy_config
-  # ASR Backend Selection
-  asr_backend: 'whisper'  # Higher accuracy but more VRAM
-
   # Voice Activity Detection (VAD) Settings
   vad_enabled: true
   vad_threshold: 0.3  # Lower = less filtering, processes more audio
 
   # Audio Processing Settings
-  sample_rate: 16000  
+  sample_rate: 16000
   buffer_timeout: 5.0  # More patience for complete sentences
 
   # Language Configuration
@@ -60,12 +54,6 @@ accuracy_optimized: &accuracy_config
     - "nl"
     - "cs"
     - "sk"
-
-  # Whisper-Specific Settings
-  whisper:
-    beam_size: 5  # Higher beam size for better accuracy
-    use_gpu: true
-    compute_type: "float16"
 
   # VAD-Specific Settings
   vad:
@@ -82,10 +70,7 @@ accuracy_optimized: &accuracy_config
 # LOW RESOURCE (Minimal VRAM/CPU usage)
 # ==============================================================================
 low_resource: &low_resource_config
-  # ASR Backend Selection
-  asr_backend: 'parakeet'
-
-  # Voice Activity Detection (VAD) Settings  
+  # Voice Activity Detection (VAD) Settings
   vad_enabled: true
   vad_threshold: 0.8  # Very strict filtering
 
@@ -113,9 +98,6 @@ low_resource: &low_resource_config
 # DEBUGGING (Verbose logging, less filtering)
 # ==============================================================================
 debugging: &debug_config
-  # ASR Backend Selection
-  asr_backend: 'parakeet'
-
   # Voice Activity Detection (VAD) Settings
   vad_enabled: false  # Disable VAD to process all audio
 
@@ -140,11 +122,8 @@ debugging: &debug_config
 
 # ==============================================================================
 # MULTILINGUAL (Support for all languages)
-# ==============================================================================  
+# ==============================================================================
 multilingual: &multilingual_config
-  # ASR Backend Selection
-  asr_backend: 'parakeet'
-
   # Voice Activity Detection (VAD) Settings
   vad_enabled: true
   vad_threshold: 0.5  # Balanced filtering
@@ -156,7 +135,7 @@ multilingual: &multilingual_config
   # Language Configuration (all supported languages)
   languages:
     - "hu"  # Hungarian (primary)
-    - "en"  # English  
+    - "en"  # English
     - "de"  # German
     - "fr"  # French
     - "es"  # Spanish
@@ -191,7 +170,7 @@ multilingual: &multilingual_config
 # ==============================================================================
 production: &production_config
   <<: *speed_config  # Inherit from speed_optimized
-  
+
   # Override specific settings for production
   performance:
     max_audio_length: 8.0
@@ -207,6 +186,6 @@ production: &production_config
 # ==============================================================================
 # To use a specific configuration:
 # 1. Copy the desired section to your config.yaml
-# 2. Remove the anchor name (e.g., "&speed_config")  
+# 2. Remove the anchor name (e.g., "&speed_config")
 # 3. Adjust values as needed for your specific setup
 # ==============================================================================

@@ -1,10 +1,6 @@
 # Wyoming VAD ASR Server Configuration
 # This file configures the Wyoming protocol server with VAD and ASR capabilities
 
-# ASR Backend Selection
-# Options: 'parakeet' (low VRAM, fast) or 'whisper' (higher accuracy)
-asr_backend: 'parakeet'
-
 # Voice Activity Detection (VAD) Settings
 vad_enabled: true
 vad_threshold: 0.7  # Speech detection threshold (0.0-1.0, higher = more strict) - INCREASED for faster cutoff
@@ -36,13 +32,6 @@ server:
 parakeet:
   model_name: "nvidia/parakeet-tdt-0.6b-v3"
   use_gpu: true  # Use GPU if available
-  
-whisper:
-  model_path: "/home/attila/voice-services/whisper/converted-models/hungarian-large-v2"
-  fallback_model: "large-v2"  # Fallback if custom model not found
-  beam_size: 2  # Beam size for decoding (higher = better accuracy, slower)
-  use_gpu: true  # Use GPU if available
-  compute_type: "float16"  # GPU: float16, CPU: int8
 
 # VAD-Specific Settings
 vad:

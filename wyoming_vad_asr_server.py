@@ -6,7 +6,6 @@ Proper Home Assistant-compatible Wyoming implementation
 Features:
 - Handles Describe events for service discovery
 - Integrates Silero VAD for speech detection
-- Supports both Parakeet and Faster-Whisper backends
 - Full Wyoming protocol compliance
 """
 
@@ -37,7 +36,6 @@ _LOGGER = logging.getLogger(__name__)
 
 # Global configuration
 CONFIG = {
-    'asr_backend': 'parakeet',  # 'parakeet' or 'whisper'
     'vad_enabled': True,
     'vad_threshold': 0.7,  # More strict for faster cutoff
     'sample_rate': 16000,
@@ -136,13 +134,8 @@ class ASRProcessor:
             
         _LOGGER.info(f"Loading {self.backend} ASR...")
         try:
-            if self.backend == 'parakeet':
-                await self._load_parakeet()
-            elif self.backend == 'whisper':
-                await self._load_whisper()
-            else:
-                raise ValueError(f"Unknown ASR backend: {self.backend}")
-                
+            await self._load_parakeet()
+            
             self.is_loaded = True
             _LOGGER.info(f"✅ {self.backend} ASR loaded successfully")
             
@@ -160,34 +153,14 @@ class ASRProcessor:
             _LOGGER.info("Parakeet loaded on GPU")
         else:
             _LOGGER.info("Parakeet loaded on CPU")
-            
-    async def _load_whisper(self):
-        """Load Faster-Whisper model"""
-        from faster_whisper import WhisperModel
-        
-        # Use GPU if available
-        device = "cuda" if torch.cuda.is_available() else "cpu"
-        compute_type = "float16" if device == "cuda" else "int8"
-        
-        # Load Hungarian large model if available, fallback to large-v2
-        model_path = "/home/attila/voice-services/whisper/converted-models/hungarian-large-v2"
-        if Path(model_path).exists():
-            _LOGGER.info(f"Loading Hungarian Whisper model from {model_path}")
-            self.asr_model = WhisperModel(model_path, device=device, compute_type=compute_type)
-        else:
-            _LOGGER.info("Loading Whisper large-v2 model")
-            self.asr_model = WhisperModel("large-v2", device=device, compute_type=compute_type)
-            
+
     async def transcribe(self, audio_data: np.ndarray) -> str:
         """Transcribe audio using the selected backend"""
         if not self.asr_model:
             return "ASR model not available"
             
         try:
-            if self.backend == 'parakeet':
-                return await self._transcribe_parakeet(audio_data)
-            elif self.backend == 'whisper':
-                return await self._transcribe_whisper(audio_data)
+            return await self._transcribe_parakeet(audio_data)
         except Exception as e:
             _LOGGER.error(f"Transcription error: {e}")
             return f"Error: {str(e)}"
@@ -215,26 +188,6 @@ class ASRProcessor:
         
         _LOGGER.info(f"Parakeet transcribed in {processing_time:.2f}s: '{text}'")
         return text.strip()
-        
-    async def _transcribe_whisper(self, audio_data: np.ndarray) -> str:
-        """Transcribe using Faster-Whisper"""
-        start_time = time.time()
-        
-        # Transcribe directly from numpy array
-        segments, info = self.asr_model.transcribe(
-            audio_data, 
-            beam_size=2,
-            language="hu" if CONFIG['languages'][0] == "hu" else None,
-            vad_filter=False,  # We're already using VAD
-            vad_parameters=None
-        )
-        
-        # Combine segments
-        transcription = " ".join([segment.text for segment in segments])
-        processing_time = time.time() - start_time
-        
-        _LOGGER.info(f"Whisper transcribed in {processing_time:.2f}s: '{transcription}'")
-        return transcription.strip()
 
 
 class WyomingVADASRHandler(AsyncEventHandler):
@@ -252,7 +205,7 @@ class WyomingVADASRHandler(AsyncEventHandler):
                 sample_rate=CONFIG['sample_rate']
             )
         if GLOBAL_ASR_PROCESSOR is None:
-            GLOBAL_ASR_PROCESSOR = ASRProcessor(backend=CONFIG['asr_backend'])
+            GLOBAL_ASR_PROCESSOR = ASRProcessor()
             
         self.vad_processor = GLOBAL_VAD_PROCESSOR
         self.asr_processor = GLOBAL_ASR_PROCESSOR
@@ -406,64 +359,33 @@ def load_config(config_path: Optional[Path] = None) -> Dict[str, Any]:
 
 def create_wyoming_info() -> Info:
     """Create Wyoming service info for discovery"""
-    backend = CONFIG['asr_backend']
-    
-    if backend == 'parakeet':
-        return Info(
-            asr=[
-                AsrProgram(
-                    name="parakeet-v3-vad",
-                    description="Parakeet v3 ASR with Silero VAD",
-                    attribution=Attribution(
-                        name="NVIDIA NeMo",
-                        url="https://github.com/NVIDIA/NeMo"
-                    ),
-                    installed=True,
-                    version="3.0",
-                    models=[
-                        AsrModel(
-                            name="parakeet-tdt-0.6b-v3-vad",
-                            description="Parakeet TDT 0.6B v3 with VAD - 25 European languages",
-                            attribution=Attribution(
-                                name="NVIDIA",
-                                url="https://huggingface.co/nvidia/parakeet-tdt-0.6b-v3"
-                            ),
-                            installed=True,
-                            languages=CONFIG['languages'],
-                            version="3.0"
-                        )
-                    ]
-                )
-            ]
-        )
-    else:  # whisper
-        return Info(
-            asr=[
-                AsrProgram(
-                    name="whisper-vad",
-                    description="Faster-Whisper ASR with Silero VAD",
-                    attribution=Attribution(
-                        name="OpenAI Whisper + Silero VAD",
-                        url="https://github.com/openai/whisper"
-                    ),
-                    installed=True,
-                    version="1.0",
-                    models=[
-                        AsrModel(
-                            name="hungarian-large-v2-vad",
-                            description="Hungarian-optimized Whisper Large v2 with VAD",
-                            attribution=Attribution(
-                                name="OpenAI",
-                                url="https://github.com/openai/whisper"
-                            ),
-                            installed=True,
-                            languages=["hu", "en"],
-                            version="2.0"
-                        )
-                    ]
-                )
-            ]
-        )
+    return Info(
+        asr=[
+            AsrProgram(
+                name="parakeet-v3-vad",
+                description="Parakeet v3 ASR with Silero VAD",
+                attribution=Attribution(
+                    name="NVIDIA NeMo",
+                    url="https://github.com/NVIDIA/NeMo"
+                ),
+                installed=True,
+                version="3.0",
+                models=[
+                    AsrModel(
+                        name="parakeet-tdt-0.6b-v3-vad",
+                        description="Parakeet TDT 0.6B v3 with VAD - 25 European languages",
+                        attribution=Attribution(
+                            name="NVIDIA",
+                            url="https://huggingface.co/nvidia/parakeet-tdt-0.6b-v3"
+                        ),
+                        installed=True,
+                        languages=CONFIG['languages'],
+                        version="3.0"
+                    )
+                ]
+            )
+        ]
+    )
 
 
 async def main():
