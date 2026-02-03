@@ -16,7 +16,7 @@ import tempfile
 import yaml
 import time
 from pathlib import Path
-from typing import Optional, Dict, Any
+from typing import Any
 
 # Wyoming protocol imports
 from wyoming.info import AsrModel, AsrProgram, Attribution, Info, Describe
@@ -86,6 +86,11 @@ class VADProcessor:
             # Convert to tensor
             audio_tensor = torch.tensor(audio_data, dtype=torch.float32)
 
+            if not isinstance(CONFIG['min_speech_duration'], float):
+                raise ValueError("Invalid min_speech_duration in configuration")
+            if not isinstance(CONFIG['max_audio_length'], float):
+                raise ValueError("Invalid max_audio_length in configuration")
+
             # Get speech timestamps with more aggressive filtering
             timestamps = self.get_speech_timestamps(
                 audio_tensor,
@@ -147,7 +152,7 @@ class ASRProcessor:
         import nemo.collections.asr as nemo_asr
         self.asr_model = nemo_asr.models.ASRModel.from_pretrained("nvidia/parakeet-tdt-0.6b-v3")
         if torch.cuda.is_available():
-            self.asr_model = self.asr_model.cuda()
+            self.asr_model = self.asr_model.cuda() # pyright: ignore[reportAttributeAccessIssue]
             _LOGGER.info("Parakeet loaded on GPU")
         else:
             _LOGGER.info("Parakeet loaded on CPU")
@@ -172,7 +177,7 @@ class ASRProcessor:
 
         # Transcribe
         start_time = time.time()
-        transcription = self.asr_model.transcribe([temp_path])[0]
+        transcription = self.asr_model.transcribe([temp_path])[0] # pyright: ignore[reportAttributeAccessIssue, reportOptionalMemberAccess]
         processing_time = time.time() - start_time
 
         # Cleanup
@@ -194,6 +199,11 @@ class WyomingVADASRHandler(AsyncEventHandler):
     def __init__(self, wyoming_info: Info, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.wyoming_info = wyoming_info
+
+        if not isinstance(CONFIG['vad_threshold'], float):
+            raise ValueError("Invalid vad_threshold in configuration")
+        if not isinstance(CONFIG['sample_rate'], int):
+            raise ValueError("Invalid sample_rate in configuration")
 
         # Use global model instances for better performance
         global GLOBAL_VAD_PROCESSOR, GLOBAL_ASR_PROCESSOR
@@ -246,6 +256,9 @@ class WyomingVADASRHandler(AsyncEventHandler):
         elif AudioChunk.is_type(event.type):
             audio_chunk = AudioChunk.from_event(event)
             self.audio_buffer.extend(audio_chunk.audio)
+
+            if not isinstance(CONFIG['max_audio_length'], float):
+                raise ValueError("Invalid max_audio_length in configuration")
 
             # Limit buffer size to prevent too long recordings
             max_buffer_size = int(CONFIG['max_audio_length'] * self.sample_rate * self.sample_width)
@@ -337,7 +350,7 @@ class WyomingVADASRHandler(AsyncEventHandler):
             self.audio_buffer.clear()
 
 
-def load_config(config_path: Optional[Path] = None) -> Dict[str, Any]:
+def load_config(config_path: Path | None = None) -> dict[str, Any]:
     """Load configuration from YAML file"""
     global CONFIG
 
@@ -357,6 +370,9 @@ def load_config(config_path: Optional[Path] = None) -> Dict[str, Any]:
 
 def create_wyoming_info() -> Info:
     """Create Wyoming service info for discovery"""
+    if not isinstance(CONFIG['languages'], list):
+        raise ValueError("Invalid languages in configuration")
+
     return Info(
         asr=[
             AsrProgram(
@@ -404,6 +420,9 @@ async def main():
     # Load configuration
     config_path = args.config or Path("/home/attila/voice-services/vad_asr_config.yaml")
     load_config(config_path)
+
+    if not isinstance(CONFIG['languages'], list):
+        raise ValueError("Invalid languages in configuration")
 
     _LOGGER.info("🚀 Starting Wyoming VAD ASR Server...")
     _LOGGER.info(f"🎤 VAD: {'enabled' if CONFIG['vad_enabled'] else 'disabled'}")
