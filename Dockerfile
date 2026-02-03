@@ -11,6 +11,9 @@ RUN --mount=type=cache,target=/root/.cache/pip \
 FROM python:3.13-slim
 
 COPY --from=builder /install /usr/local/lib/python3.13/site-packages
+
+WORKDIR /app
+
 COPY . .
 
 VOLUME ["/root/.cache/huggingface"] # Model cache

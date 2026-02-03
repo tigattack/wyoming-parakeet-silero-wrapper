@@ -418,7 +418,7 @@ async def main():
     )
 
     # Load configuration
-    config_path = args.config or Path("/home/attila/voice-services/vad_asr_config.yaml")
+    config_path = args.config or Path("/app/config.yaml")
     load_config(config_path)
 
     if not isinstance(CONFIG['languages'], list):
