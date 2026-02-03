@@ -34,7 +34,31 @@ This wrapper provides a complete Wyoming ASR service that Home Assistant can dis
 - 4GB+ VRAM available
 - Linux/Ubuntu system
 
-### Installation
+### Docker
+
+```bash
+docker run -d \
+  --name parakeet-wyoming \
+  --runtime=nvidia \
+  --gpus all \
+  -p 10300:10300 \
+  -v ~/.cache/huggingface:/root/.cache/huggingface \
+  -v $(pwd)/config.yaml:/app/config.yaml \
+  --restart unless-stopped \
+  ghcr.io/tigattack/wyoming-parakeet-silero-wrapper:main
+```
+
+**Configuration options:**
+- `--runtime=nvidia`: Use NVIDIA runtime (required for GPU access)
+- `--gpus all`: Expose all GPUs to the container
+- `-p 10300:10300`: Expose Wyoming protocol port
+- `-v ~/.cache/huggingface:/root/.cache/huggingface`: Cache downloaded models (recommended)
+- `-v $(pwd)/config.yaml:/app/config.yaml`: Custom configuration (optional)
+- `--restart unless-stopped`: Auto-restart on failure
+
+**Note:** Requires [NVIDIA Container Toolkit](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/install-guide.html) for GPU support.
+
+### System Installation
 
 1. **Clone the repository**:
 ```bash
