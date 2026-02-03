@@ -34,14 +34,14 @@ _LOGGER = logging.getLogger(__name__)
 
 # Global configuration
 CONFIG = {
-    'vad_enabled': True,
-    'vad_threshold': 0.7,  # More strict for faster cutoff
-    'sample_rate': 16000,
-    'buffer_timeout': 2.0,  # Reduced for faster processing
-    'min_speech_duration': 0.3,  # Ignore very short sounds
-    'max_silence_duration': 0.2,  # Cut off faster after silence
-    'max_audio_length': 8.0,  # Limit max processing time
-    'languages': ["hu", "en", "de", "fr", "es", "it", "pl", "nl", "cs", "sk"]
+    "vad_enabled": True,
+    "vad_threshold": 0.7,           # More strict for faster cutoff
+    "sample_rate": 16000,
+    "buffer_timeout": 2.0,          # Reduced for faster processing
+    "min_speech_duration": 0.3,     # Ignore very short sounds
+    "max_silence_duration": 0.2,    # Cut off faster after silence
+    "max_audio_length": 8.0,        # Limit max processing time
+    "languages": ["hu", "en", "de", "fr", "es", "it", "pl", "nl", "cs", "sk"],
 }
 
 # Global model instances (shared across handlers for performance)
@@ -67,6 +67,7 @@ class VADProcessor:
         try:
             # Import here to handle missing dependencies gracefully
             from silero_vad import load_silero_vad, get_speech_timestamps
+
             self.vad_model = load_silero_vad(onnx=True)
             self.get_speech_timestamps = get_speech_timestamps
             self.is_loaded = True
@@ -86,9 +87,9 @@ class VADProcessor:
             # Convert to tensor
             audio_tensor = torch.tensor(audio_data, dtype=torch.float32)
 
-            if not isinstance(CONFIG['min_speech_duration'], float):
+            if not isinstance(CONFIG["min_speech_duration"], float):
                 raise ValueError("Invalid min_speech_duration in configuration")
-            if not isinstance(CONFIG['max_audio_length'], float):
+            if not isinstance(CONFIG["max_audio_length"], float):
                 raise ValueError("Invalid max_audio_length in configuration")
 
             # Get speech timestamps with more aggressive filtering
@@ -97,23 +98,32 @@ class VADProcessor:
                 self.vad_model,
                 sampling_rate=self.sample_rate,
                 threshold=self.threshold,
-                min_speech_duration_ms=int(CONFIG['min_speech_duration'] * 1000),  # Convert to ms
-                max_speech_duration_s=CONFIG['max_audio_length']
+                min_speech_duration_ms=int(
+                    CONFIG["min_speech_duration"] * 1000
+                ),  # Convert to ms
+                max_speech_duration_s=CONFIG["max_audio_length"],
             )
 
             # Filter out very short segments
             valid_timestamps = []
             for ts in timestamps:
-                duration = (ts['end'] - ts['start']) / self.sample_rate
-                if duration >= CONFIG['min_speech_duration']:
+                duration = (ts["end"] - ts["start"]) / self.sample_rate
+                if duration >= CONFIG["min_speech_duration"]:
                     valid_timestamps.append(ts)
 
             has_speech = len(valid_timestamps) > 0
             if has_speech:
-                total_duration = sum((ts['end'] - ts['start']) / self.sample_rate for ts in valid_timestamps)
-                _LOGGER.debug(f"VAD detected {len(valid_timestamps)} speech segments ({total_duration:.2f}s total)")
+                total_duration = sum(
+                    (ts["end"] - ts["start"]) / self.sample_rate
+                    for ts in valid_timestamps
+                )
+                _LOGGER.debug(
+                    f"VAD detected {len(valid_timestamps)} speech segments ({total_duration:.2f}s total)"
+                )
             else:
-                _LOGGER.debug("VAD detected no valid speech (filtered out short segments)")
+                _LOGGER.debug(
+                    "VAD detected no valid speech (filtered out short segments)"
+                )
             return has_speech
 
         except Exception as e:
@@ -124,7 +134,7 @@ class VADProcessor:
 class ASRProcessor:
     """ASR processor supporting multiple backends"""
 
-    def __init__(self, backend='parakeet'):
+    def __init__(self, backend="parakeet"):
         self.backend = backend
         self.asr_model = None
         self.is_loaded = False
@@ -150,9 +160,12 @@ class ASRProcessor:
     async def _load_parakeet(self):
         """Load Parakeet v3 model"""
         import nemo.collections.asr as nemo_asr
-        self.asr_model = nemo_asr.models.ASRModel.from_pretrained("nvidia/parakeet-tdt-0.6b-v3")
+
+        self.asr_model = nemo_asr.models.ASRModel.from_pretrained(
+            "nvidia/parakeet-tdt-0.6b-v3"
+        )
         if torch.cuda.is_available():
-            self.asr_model = self.asr_model.cuda() # pyright: ignore[reportAttributeAccessIssue]
+            self.asr_model = self.asr_model.cuda()  # pyright: ignore[reportAttributeAccessIssue]
             _LOGGER.info("Parakeet loaded on GPU")
         else:
             _LOGGER.info("Parakeet loaded on CPU")
@@ -171,20 +184,20 @@ class ASRProcessor:
     async def _transcribe_parakeet(self, audio_data: np.ndarray) -> str:
         """Transcribe using Parakeet"""
         # Save audio to temporary file (Parakeet expects file input)
-        with tempfile.NamedTemporaryFile(suffix='.wav', delete=False) as temp_file:
+        with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as temp_file:
             sf.write(temp_file.name, audio_data, self.sample_rate)
             temp_path = temp_file.name
 
         # Transcribe
         start_time = time.time()
-        transcription = self.asr_model.transcribe([temp_path])[0] # pyright: ignore[reportAttributeAccessIssue, reportOptionalMemberAccess]
+        transcription = self.asr_model.transcribe([temp_path])[0]  # pyright: ignore[reportAttributeAccessIssue, reportOptionalMemberAccess]
         processing_time = time.time() - start_time
 
         # Cleanup
         Path(temp_path).unlink(missing_ok=True)
 
         # Extract text from Hypothesis object
-        if hasattr(transcription, 'text'):
+        if hasattr(transcription, "text"):
             text = transcription.text
         else:
             text = str(transcription)
@@ -200,17 +213,16 @@ class WyomingVADASRHandler(AsyncEventHandler):
         super().__init__(*args, **kwargs)
         self.wyoming_info = wyoming_info
 
-        if not isinstance(CONFIG['vad_threshold'], float):
+        if not isinstance(CONFIG["vad_threshold"], float):
             raise ValueError("Invalid vad_threshold in configuration")
-        if not isinstance(CONFIG['sample_rate'], int):
+        if not isinstance(CONFIG["sample_rate"], int):
             raise ValueError("Invalid sample_rate in configuration")
 
         # Use global model instances for better performance
         global GLOBAL_VAD_PROCESSOR, GLOBAL_ASR_PROCESSOR
         if GLOBAL_VAD_PROCESSOR is None:
             GLOBAL_VAD_PROCESSOR = VADProcessor(
-                threshold=CONFIG['vad_threshold'],
-                sample_rate=CONFIG['sample_rate']
+                threshold=CONFIG["vad_threshold"], sample_rate=CONFIG["sample_rate"]
             )
         if GLOBAL_ASR_PROCESSOR is None:
             GLOBAL_ASR_PROCESSOR = ASRProcessor()
@@ -220,7 +232,7 @@ class WyomingVADASRHandler(AsyncEventHandler):
 
         # Audio buffer management
         self.audio_buffer = bytearray()
-        self.sample_rate = CONFIG['sample_rate']
+        self.sample_rate = CONFIG["sample_rate"]
         self.sample_width = 2  # 16-bit
         self.channels = 1  # mono
 
@@ -249,7 +261,9 @@ class WyomingVADASRHandler(AsyncEventHandler):
             self.sample_width = audio_start.width
             self.channels = audio_start.channels
             self.audio_buffer.clear()
-            _LOGGER.debug(f"Audio stream started: {self.sample_rate}Hz, {self.sample_width}B, {self.channels}ch")
+            _LOGGER.debug(
+                f"Audio stream started: {self.sample_rate}Hz, {self.sample_width}B, {self.channels}ch"
+            )
             return True
 
         # Handle audio data chunks
@@ -257,13 +271,17 @@ class WyomingVADASRHandler(AsyncEventHandler):
             audio_chunk = AudioChunk.from_event(event)
             self.audio_buffer.extend(audio_chunk.audio)
 
-            if not isinstance(CONFIG['max_audio_length'], float):
+            if not isinstance(CONFIG["max_audio_length"], float):
                 raise ValueError("Invalid max_audio_length in configuration")
 
             # Limit buffer size to prevent too long recordings
-            max_buffer_size = int(CONFIG['max_audio_length'] * self.sample_rate * self.sample_width)
+            max_buffer_size = int(
+                CONFIG["max_audio_length"] * self.sample_rate * self.sample_width
+            )
             if len(self.audio_buffer) > max_buffer_size:
-                _LOGGER.debug(f"Audio buffer reached limit ({CONFIG['max_audio_length']}s), processing...")
+                _LOGGER.debug(
+                    f"Audio buffer reached limit ({CONFIG['max_audio_length']}s), processing..."
+                )
                 await self._process_audio_buffer()
 
             return True
@@ -320,19 +338,23 @@ class WyomingVADASRHandler(AsyncEventHandler):
 
             # Resample if needed (basic resampling)
             if self.sample_rate != self.asr_processor.sample_rate:
-                _LOGGER.debug(f"Resampling from {self.sample_rate} to {self.asr_processor.sample_rate} Hz")
+                _LOGGER.debug(
+                    f"Resampling from {self.sample_rate} to {self.asr_processor.sample_rate} Hz"
+                )
                 ratio = self.asr_processor.sample_rate / self.sample_rate
                 new_length = int(len(audio_data) * ratio)
                 audio_data = np.interp(
                     np.linspace(0, len(audio_data), new_length),
                     np.arange(len(audio_data)),
-                    audio_data
+                    audio_data,
                 )
 
             # Check for speech using VAD
-            if CONFIG['vad_enabled'] and self.vad_processor.is_loaded:
+            if CONFIG["vad_enabled"] and self.vad_processor.is_loaded:
                 if not self.vad_processor.has_speech(audio_data):
-                    _LOGGER.debug("No speech detected by VAD - returning empty transcript")
+                    _LOGGER.debug(
+                        "No speech detected by VAD - returning empty transcript"
+                    )
                     await self.write_event(Transcript("").event())
                     return
 
@@ -356,7 +378,7 @@ def load_config(config_path: Path | None = None) -> dict[str, Any]:
 
     if config_path and config_path.exists():
         try:
-            with open(config_path, 'r') as f:
+            with open(config_path, "r") as f:
                 file_config = yaml.safe_load(f) or {}
             CONFIG.update(file_config)
             _LOGGER.info(f"Configuration loaded from {config_path}")
@@ -370,7 +392,7 @@ def load_config(config_path: Path | None = None) -> dict[str, Any]:
 
 def create_wyoming_info() -> Info:
     """Create Wyoming service info for discovery"""
-    if not isinstance(CONFIG['languages'], list):
+    if not isinstance(CONFIG["languages"], list):
         raise ValueError("Invalid languages in configuration")
 
     return Info(
@@ -379,8 +401,7 @@ def create_wyoming_info() -> Info:
                 name="parakeet-v3-vad",
                 description="Parakeet v3 ASR with Silero VAD",
                 attribution=Attribution(
-                    name="NVIDIA NeMo",
-                    url="https://github.com/NVIDIA/NeMo"
+                    name="NVIDIA NeMo", url="https://github.com/NVIDIA/NeMo"
                 ),
                 installed=True,
                 version="3.0",
@@ -390,13 +411,13 @@ def create_wyoming_info() -> Info:
                         description="Parakeet TDT 0.6B v3 with VAD - 25 European languages",
                         attribution=Attribution(
                             name="NVIDIA",
-                            url="https://huggingface.co/nvidia/parakeet-tdt-0.6b-v3"
+                            url="https://huggingface.co/nvidia/parakeet-tdt-0.6b-v3",
                         ),
                         installed=True,
-                        languages=CONFIG['languages'],
-                        version="3.0"
+                        languages=CONFIG["languages"],
+                        version="3.0",
                     )
-                ]
+                ],
             )
         ]
     )
@@ -414,14 +435,14 @@ async def main():
     # Setup logging
     logging.basicConfig(
         level=logging.DEBUG if args.debug else logging.INFO,
-        format="%(asctime)s [%(levelname)s] %(name)s: %(message)s"
+        format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
     )
 
     # Load configuration
     config_path = args.config or Path("/app/config.yaml")
     load_config(config_path)
 
-    if not isinstance(CONFIG['languages'], list):
+    if not isinstance(CONFIG["languages"], list):
         raise ValueError("Invalid languages in configuration")
 
     _LOGGER.info("🚀 Starting Wyoming VAD ASR Server...")
