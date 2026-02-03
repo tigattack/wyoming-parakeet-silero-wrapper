@@ -3,8 +3,14 @@ name: Build
 on:
   push:
     branches: ["main"]
+    paths: &paths
+      - 'Dockerfile'
+      - 'wyoming_vad_asr_server.py'
+      - 'requirements.txt'
+      - '.github/workflows/build.yml'
   pull_request:
     branches: ["main"]
+    paths: *paths
 
 env:
   REGISTRY: ghcr.io
